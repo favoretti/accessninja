@@ -37,8 +37,6 @@ class Rule(object):
 
     @src.setter
     def src(self, value):
-        if value is None:
-            return
         # TODO IP validation
         self._src = value
 
@@ -48,8 +46,6 @@ class Rule(object):
 
     @srcport.setter
     def srcport(self, value):
-        if value is None:
-            return
         # TODO IP validation
         self._srcport = value
 
@@ -59,8 +55,6 @@ class Rule(object):
 
     @dst.setter
     def dst(self, value):
-        if value is None:
-            return
         # TODO IP validation
         self._dst = value
 
