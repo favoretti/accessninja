@@ -3,19 +3,29 @@ import re
 import sys
 from rule import Rule, ICMPRule
 
-line = { 'policy': 'allow/deny',
-         'protocol': 'tcp/udp/any',
-         'src': 'prefix/$ip/any/@hostgroup/any',
-         'srcport': 'pnumber/range/@portgroup/any',
-         'dst': 'prefix/$ip/any/@hostgroup/any',
-         'dstport': 'pnumber/range/@portgroup/any',
-         'stateful': 'True/False',
-         'expire': 'date, internal to parsing, skip generation if past',
-         'log': 'True/False'
-}
-
 def parseLine(line):
-    m = re.search("^(allow|deny)?\s+(tcp|udp|tcpudp|any)\s+?(?:src\s(\S+))\s*(?:port\s+(\S+))?\s*(?:dst\s(\S+))\s?(?:port\s+(\S+))?(?=(?:.*(stateful))?)(?=(?:.*expire (\d{8}))?)(?=(?:.*(log))?)", line)
+    #
+    # < allow | deny > \
+    # < tcp | udp | any > \
+    # src < prefix | $ip | @hostgroup | any > [ port number | range | @portgroup | any ] \
+    # dst < prefix | $ip | @hostgroup | any > [ port number | range | @portgroup | any ] \
+    # [ stateful ] \
+    # [ expire YYYYMMDD ] [ log ] \
+    # [ # comment ]
+    #
+
+    m = re.search(
+            "^(allow|deny)"                       # match policy
+            "\s+"                                 # match space
+            "(tcp|udp|tcpudp|any)"                # match protocol
+            "\s+"                                 # match space
+            "(?:src\s(\S+))\s*(?:port\s+(\S+))?"  # match 'src <value>'
+            "\s+"                                 # match space
+            "(?:dst\s(\S+))\s*(?:port\s+(\S+))?"  # match 'dst <value>'
+            "(?=(?:.*(stateful))?)"               # match optional 'stateful'
+            "(?=(?:.*expire (\d{8}))?)"           # match optional 'expire <value>'
+            "(?=(?:.*(log))?)", line)             # match optional 'log'
+
     if m is not None:
         rule = Rule()
         rule.policy = m.group(1)
@@ -28,8 +38,30 @@ def parseLine(line):
         rule.expire = m.group(8)
         rule.log = m.group(9)
         print rule
-    elif m is None:
-        m = re.search("^(allow|deny)?\s+(icmp)\s+(?:(?:type\s)?(\S+|any))\s+(?:src\s(\S+))\s+(?:dst\s(\S+))(?=(?:.*expire (\d{8}))?)(?=(?:.*(log))?)", line)
+
+    if m is None:
+        # We probably encountered an ICMP policy
+        #
+        # < allow | deny > < icmp > < any | type <code|any> > \
+        # src < prefix | $ip | @hostgroup | any > \
+        # dst < prefix | $ip | @hostgroup | any > \
+        # [ expire YYYYMMDD ] [ log ] \
+        # [ # comment ]
+        #
+
+        m = re.search(
+              "^(allow|deny)"               # match policy
+              "\s+"                         # match space
+              "(icmp)"                      # match protocol, only icmp
+              "\s+"                         # match space
+              "(?:(?:type\s)?(\S+|any))"    # match icmp type or 'any'
+              "\s+"                         # match space
+              "(?:src\s(\S+))"              # match src
+              "\s+"                         # match space
+              "(?:dst\s(\S+))"              # match dst
+              "(?=(?:.*expire (\d{8}))?)"   # match optional 'expire <value>'
+              "(?=(?:.*(log))?)", line)     # match optional 'log'
+
         if m is not None:
             rule = ICMPRule()
             rule.policy = m.group(1)
@@ -41,8 +73,7 @@ def parseLine(line):
             rule.log = m.group(7)
             print rule
         else:
-            print "NO MATCH: {}".format(line)
-
+            raise Exception("Could not parse the line: {}".format(line))
 
 
 def parseFile(filename):
