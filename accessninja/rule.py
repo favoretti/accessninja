@@ -1,6 +1,6 @@
 from ipaddr import IPNetwork
 
-class Rule(object):
+class TCPRule(object):
 
     def __init__(self):
         self._policy = None
