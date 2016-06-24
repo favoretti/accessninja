@@ -37,8 +37,13 @@ class Rule(object):
 
     @src.setter
     def src(self, value):
-        # TODO IP validation
-        self._src = value
+        n = None
+        if not value.startswith('@') and not value == 'any':
+            try:
+                n = IPNetwork(value)
+            except ValueError, e:
+                raise Exception(e)
+        self._src = (value if n is None else n)
 
     @property
     def srcport(self):
@@ -46,7 +51,6 @@ class Rule(object):
 
     @srcport.setter
     def srcport(self, value):
-        # TODO IP validation
         self._srcport = value
 
     @property
@@ -55,8 +59,13 @@ class Rule(object):
 
     @dst.setter
     def dst(self, value):
-        # TODO IP validation
-        self._dst = value
+        n = None
+        if not value.startswith('@') and not value == 'any':
+            try:
+                n = IPNetwork(value)
+            except ValueError, e:
+                raise Exception(e)
+        self._dst = (value if n is None else n)
 
     @property
     def dstport(self):
@@ -91,7 +100,7 @@ class Rule(object):
         self._log = value
 
     def __str__(self):
-        return "RULE: POL:{} PROTO:{} SRC:{} PORT:{} DST:{} PORT:{} STATE:{} EXPIRE:{} LOG:{}".format(self._policy, self._protocol, self._src, self._srcport, self._dst, self._dstport, self._stateful, self._expire, self._log)
+        return "RULE: POL:{} PROTO:{} SRC:{} PORT:{} DST:{} PORT:{} STATE:{} EXPIRE:{} LOG:{}".format(self._policy, self._protocol, self._src if type(self._src) == str else self._src.with_netmask, self._srcport, self._dst if type(self._dst) == str else self._dst.with_netmask, self._dstport, self._stateful, self._expire, self._log)
 
     def __repr__(self):
         return "Ruleset"
@@ -139,7 +148,13 @@ class ICMPRule(object):
 
     @src.setter
     def src(self, value):
-        self._src = value
+        n = None
+        if not value.startswith('@') and not value == 'any':
+            try:
+                n = IPNetwork(value)
+            except ValueError, e:
+                raise Exception(e)
+        self._src = (value if n is None else n)
 
     @property
     def dst(self):
@@ -147,7 +162,13 @@ class ICMPRule(object):
 
     @dst.setter
     def dst(self, value):
-        self._dst = value
+        n = None
+        if not value.startswith('@') and not value == 'any':
+            try:
+                n = IPNetwork(value)
+            except ValueError, e:
+                raise Exception(e)
+        self._dst = (value if n is None else n)
 
     @property
     def expire(self):
@@ -166,7 +187,7 @@ class ICMPRule(object):
         self._log = value
 
     def __str__(self):
-        return "ICMP RULE: POL:{} PROTO:{} TYPE: {} SRC:{} DST:{} EXPIRE:{} LOG:{}".format(self._policy, self._protocol, self._icmptype, self._src, self._dst, self._expire, self._log)
+        return "ICMP RULE: POL:{} PROTO:{} TYPE: {} SRC:{} DST:{} EXPIRE:{} LOG:{}".format(self._policy, self._protocol, self._icmptype, (self._src if type(self._src) == str else self._src.with_netmask), (self._dst if type(self._dst) == str else self._dst.with_netmask), self._expire, self._log)
 
     def __repr__(self):
         return "Ruleset"
