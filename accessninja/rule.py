@@ -150,9 +150,9 @@ class TCPRule(object):
     def format_port_range(self, port):
         fport = 'BUG'
         if port.startswith('-'):
-            fport = '0-{}'.format(port)
+            fport = '0{}'.format(port)
         elif port.endswith('-'):
-            fport = '{}-65535'.format(port)
+            fport = '{}65535'.format(port)
         else:
             fport = port
 
