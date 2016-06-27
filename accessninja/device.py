@@ -19,6 +19,9 @@ class Device(object):
         self._hostgroups = list()
         self._portgroups = list()
         self._config = Config()
+        self._rendered_groups = list()
+        self._rendered_rules = dict()
+
 
 
     @property
@@ -81,8 +84,7 @@ class Device(object):
         #self.print_stats()
 
         print(self.render_junos_hostgroups())
-        #self.render_junos_rules()
-
+        self.render_junos_rules()
 
 
     def afi_match(host):
@@ -94,16 +96,40 @@ class Device(object):
             return False
 
 
-    def render_junos(self, ruleset, afi):
-        pass
+    def render_junos_rules(self):
+        for ruleset in self._rules:
+            self.render_junos_icmp_rules(ruleset.name, ruleset.icmp_rules)
+            self.render_junos_tcp_rules(ruleset.name, ruleset.tcp_rules)
+
+        self.print_rendered_config()
+
+
+    def print_rendered_config(self):
+        print('\n'.join(self._rendered_groups))
+        for ruleset_name, rules in self._rendered_rules.iteritems():
+            for idx, rule in enumerate(rules):
+                print('edit firewall filter {} term {}'.format(ruleset_name, idx+1))
+                print(rule)
+                print('top')
+
+
+    def render_junos_icmp_rules(self, name, icmp_rules):
+        for rule in icmp_rules:
+            if not name in self._rendered_rules:
+                self._rendered_rules[name] = list()
+            self._rendered_rules[name].append(rule.render_junos())
+
+
+    def render_junos_tcp_rules(self, name, tcp_rules):
+        for rule in tcp_rules:
+            if not name in self._rendered_rules:
+                self._rendered_rules[name] = list()
+            self._rendered_rules[name].append(rule.render_junos())
 
 
     def render_junos_hostgroups(self):
-        config_blob = []
         for hg in self._hostgroups:
-            config_blob.append(hg.render_junos())
-
-        return '\n'.join(config_blob)
+            self._rendered_groups.append(hg.render_junos())
 
     def resolve_hostgroup(self, hgname):
         hg = HostGroup(hgname)

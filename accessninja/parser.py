@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import ntpath
 import re
 import sys
 
@@ -7,6 +8,10 @@ from rule import TCPRule, ICMPRule
 
 class Parser(object):
 
+
+    @property
+    def name(self):
+        return self._name
 
     @property
     def tcp_rules(self):
@@ -99,7 +104,7 @@ class Parser(object):
 
     def parseFile(self, filename, update_name=True):
         if update_name:
-            self._name = filename
+            self._name = ntpath.basename(filename)
         with open(filename) as f:
             lines = f.readlines()
 

@@ -48,7 +48,7 @@ class TCPRule(object):
 
     @property
     def src(self):
-        return self._src
+        return self._src if type(self._src) == str else self._src.with_netmask
 
     @src.setter
     def src(self, value):
@@ -61,6 +61,14 @@ class TCPRule(object):
         self._src = (value if n is None else n)
 
     @property
+    def src_is_group(self):
+        return self.src and self.src.startswith('@')
+
+    @property
+    def src_is_any(self):
+        return self.src == 'any'
+
+    @property
     def srcport(self):
         return self._srcport
 
@@ -69,8 +77,16 @@ class TCPRule(object):
         self._srcport = value
 
     @property
+    def srcport_is_group(self):
+        return self.srcport and self.srcport.startswith('@')
+
+    @property
+    def srcport_is_any(self):
+        return self.srcport == 'any'
+
+    @property
     def dst(self):
-        return self._dst
+        return self._dst if type(self._dst) == str else self._dst.with_netmask
 
     @dst.setter
     def dst(self, value):
@@ -83,12 +99,28 @@ class TCPRule(object):
         self._dst = (value if n is None else n)
 
     @property
+    def dst_is_group(self):
+        return self.dst and self.dst.startswith('@')
+
+    @property
+    def dst_is_any(self):
+        return self.dst == 'any'
+
+    @property
     def dstport(self):
         return self._dstport
 
     @dstport.setter
     def dstport(self, value):
         self._dstport = value
+
+    @property
+    def dstport_is_group(self):
+        return self.dstport and self.dstport.startswith('@')
+
+    @property
+    def dstport_is_any(self):
+        return self.dstport == 'any'
 
     @property
     def stateful(self):
@@ -113,6 +145,50 @@ class TCPRule(object):
     @log.setter
     def log(self, value):
         self._log = value
+
+    def render_junos(self):
+        config_blob = list()
+        if self.protocol != 'any' and self.protocol != 'tcpudp':
+            config_blob.append('set from protocol {}'.format(self.protocol))
+
+        if self.protocol == 'tcpudp':
+            config_blob.append('set from protocol tcp')
+            config_blob.append('set from protocol udp')
+
+        if self.src and not self.src_is_any:
+            if self.src_is_group:
+                config_blob.append('set from source-prefix-list {}'.format(str(self.src)[1:]))
+            else:
+                config_blob.append('set from source-address {}'.format(self.src))
+
+        if self.srcport and not self.srcport_is_any:
+            if self.srcport_is_group:
+                config_blob.append('HERE WE SHALL DO PORTGROUP MAGIC {}'.format(str(self.srcport)[1:]))
+            else:
+                config_blob.append('set from source-port {}'.format(self.srcport))
+
+        if self.dst and not self.dst_is_any:
+            if self.dst_is_group:
+                config_blob.append('set from destination-prefix-list {}'.format(str(self.dst)[1:]))
+            else:
+                config_blob.append('set from destination-address {}'.format(self.dst))
+
+        if self.dstport and not self.dstport_is_any:
+            if self.dstport_is_group:
+                config_blob.append('HERE WE SHALL DO PORTGROUP MAGIC {}'.format(str(self.dstport)[1:]))
+            else:
+                config_blob.append('set from destination-port {}'.format(self.dstport))
+
+        if self.log:
+            config_blob.append('then syslog')
+
+        if self.policy == 'allow':
+            config_blob.append('then accept')
+        else:
+            config_blob.append('then discard')
+
+        return '\n'.join(config_blob)
+
 
     def __str__(self):
         return "RULE: POL:{} PROTO:{} SRC:{} PORT:{} DST:{} PORT:{} STATE:{} EXPIRE:{} LOG:{}".format(self._policy, self._protocol, self._src if type(self._src) == str else self._src.with_netmask, self._srcport, self._dst if type(self._dst) == str else self._dst.with_netmask, self._dstport, self._stateful, self._expire, self._log)
@@ -172,7 +248,7 @@ class ICMPRule(object):
 
     @property
     def src(self):
-        return self._src
+        return self._src if type(self._src) == str else self._src.with_netmask
 
     @src.setter
     def src(self, value):
@@ -185,8 +261,24 @@ class ICMPRule(object):
         self._src = (value if n is None else n)
 
     @property
+    def src_is_group(self):
+        return self.src.startswith('@')
+
+    @property
+    def src_is_any(self):
+        return self.src == 'any'
+
+    @property
     def dst(self):
-        return self._dst
+        return self._dst if type(self._dst) == str else self._dst.with_netmask
+
+    @property
+    def dst_is_group(self):
+        return self.dst.startswith('@')
+
+    @property
+    def dst_is_any(self):
+        return self.dst == 'any'
 
     @dst.setter
     def dst(self, value):
@@ -213,6 +305,31 @@ class ICMPRule(object):
     @log.setter
     def log(self, value):
         self._log = value
+
+    def render_junos(self):
+        config_blob = list()
+        config_blob.append('set from protocol icmp')
+        if not self.src_is_any:
+            if self.src_is_group:
+                config_blob.append('set from source-prefix-list {}'.format(str(self.src)[1:]))
+            else:
+                config_blob.append('set from source-address {}'.format(self.src))
+
+        if not self.dst_is_any:
+            if self.dst_is_group:
+                config_blob.append('set from destination-prefix-list {}'.format(str(self.dst)[1:]))
+            else:
+                config_blob.append('set from destination-address {}'.format(self.dst))
+
+        if self.log:
+            config_blob.append('then syslog')
+
+        if self.policy == 'allow':
+            config_blob.append('then accept')
+        else:
+            config_blob.append('then discard')
+
+        return '\n'.join(config_blob)
 
     def __str__(self):
         return "ICMP RULE: POL:{} PROTO:{} TYPE: {} SRC:{} DST:{} EXPIRE:{} LOG:{}".format(self._policy, self._protocol, self._icmptype, (self._src if type(self._src) == str else self._src.with_netmask), (self._dst if type(self._dst) == str else self._dst.with_netmask), self._expire, self._log)
