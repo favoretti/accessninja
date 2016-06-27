@@ -4,6 +4,7 @@ import sys
 from os.path import join
 
 from config import Config
+from group import HostGroup, PortGroup
 from parser import Parser
 
 class Device(object):
@@ -60,6 +61,8 @@ class Device(object):
 
 
     def print_stats(self):
+        for hg in self._hostgroups:
+            hg.print_stats()
         for rule in self._rules:
             rule.print_stats()
 
@@ -71,5 +74,52 @@ class Device(object):
             parsed_ruleset.parseFile(join(self._config.policies, include))
             self._rules.append(parsed_ruleset)
 
-        self.print_stats()
+        for ruleset in self._rules:
+            self.resolve_hostgroups(ruleset)
+            #self.resolve_portgroups()
+
+        #self.print_stats()
+
+        print(self.render_junos_hostgroups())
+        #self.render_junos_rules()
+
+
+
+    def afi_match(host):
+        if host == "any":
+            return True
+        elif IPNetwork(host).version == afi:
+            return True
+        else:
+            return False
+
+
+    def render_junos(self, ruleset, afi):
+        pass
+
+
+    def render_junos_hostgroups(self):
+        config_blob = []
+        for hg in self._hostgroups:
+            config_blob.append(hg.render_junos())
+
+        return '\n'.join(config_blob)
+
+    def resolve_hostgroup(self, hgname):
+        hg = HostGroup(hgname)
+        hg.parseFile()
+        if hg.has_inline_groups:
+            for ihg in hg.inline_groups:
+                if ihg not in self._hostgroups:
+                    self._hostgroups.append(ihg)
+        if hg not in self._hostgroups:
+            self._hostgroups.append(hg)
+
+    def resolve_hostgroups(self, ruleset):
+        for rule in ruleset.tcp_rules:
+            if type(rule.src) == str and rule.src.startswith('@'):
+                self.resolve_hostgroup(str(rule.src)[1:])
+
+            if type(rule.dst) == str and rule.dst.startswith('@'):
+                self.resolve_hostgroup(str(rule.dst)[1:])
 

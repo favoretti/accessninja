@@ -8,6 +8,14 @@ from rule import TCPRule, ICMPRule
 class Parser(object):
 
 
+    @property
+    def tcp_rules(self):
+        return self._tcp_rules
+
+    @property
+    def icmp_rules(self):
+        return self._icmp_rules
+
     def __init__(self):
         self._name = None
         self._config = Config()
