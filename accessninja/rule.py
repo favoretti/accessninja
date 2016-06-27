@@ -146,14 +146,32 @@ class TCPRule(object):
     def log(self, value):
         self._log = value
 
-    def render_junos(self):
+
+    def format_port_range(self, port):
+        fport = 'BUG'
+        if port.startswith('-'):
+            fport = '0-{}'.format(port)
+        elif port.endswith('-'):
+            fport = '{}-65535'.format(port)
+        else:
+            fport = port
+
+        return fport
+
+    def render_port_list(self, portlist, direction):
+        config_blob = ''
+        for port in portlist:
+            config_blob = '{}{}-port {} '.format(config_blob, direction, self.format_port_range(port))
+
+        return config_blob
+
+    def render_junos(self, portgroups):
         config_blob = list()
         if self.protocol != 'any' and self.protocol != 'tcpudp':
             config_blob.append('set from protocol {}'.format(self.protocol))
 
         if self.protocol == 'tcpudp':
-            config_blob.append('set from protocol tcp')
-            config_blob.append('set from protocol udp')
+            config_blob.append('set from protocol tcp from protocol udp')
 
         if self.src and not self.src_is_any:
             if self.src_is_group:
@@ -163,9 +181,12 @@ class TCPRule(object):
 
         if self.srcport and not self.srcport_is_any:
             if self.srcport_is_group:
-                config_blob.append('HERE WE SHALL DO PORTGROUP MAGIC {}'.format(str(self.srcport)[1:]))
+                gname = str(self.srcport)[1:]
+                group = next((g for g in portgroups if g.name == gname), None)
+                ports = self.render_port_list(group.ports, 'source')
+                config_blob.append('set from {}'.format(ports))
             else:
-                config_blob.append('set from source-port {}'.format(self.srcport))
+                config_blob.append('set from source-port {}'.format(self.format_port_range(self.srcport)))
 
         if self.dst and not self.dst_is_any:
             if self.dst_is_group:
@@ -175,9 +196,12 @@ class TCPRule(object):
 
         if self.dstport and not self.dstport_is_any:
             if self.dstport_is_group:
-                config_blob.append('HERE WE SHALL DO PORTGROUP MAGIC {}'.format(str(self.dstport)[1:]))
+                gname = str(self.dstport)[1:]
+                group = next((g for g in portgroups if g.name == gname), None)
+                ports = self.render_port_list(group.ports, 'destination')
+                config_blob.append('set from {}'.format(ports))
             else:
-                config_blob.append('set from destination-port {}'.format(self.dstport))
+                config_blob.append('set from destination-port {}'.format(self.format_port_range(self.dstport)))
 
         if self.log:
             config_blob.append('then syslog')

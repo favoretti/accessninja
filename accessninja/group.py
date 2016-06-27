@@ -56,7 +56,7 @@ class HostGroup(object):
                 if line.startswith('#'):
                     continue
                 if line.startswith('@'):
-                    rec_group = line.split(' ')[0][1:].replace('\n', '')
+                    rec_group = line.split(' ')[0][1:].strip()
                     inline_hg = HostGroup(rec_group)
                     inline_hg.parseFile()
                     self._inline_hostgroups.append(inline_hg)
@@ -93,11 +93,18 @@ class PortGroup(object):
     def name(self, value):
         self._name = value
 
+    @property
+    def ports(self):
+        return self._ports
+
     def __init__(self, groupname):
         self.config = Config()
-        self.name = None
         self._ports = list()
         self.name = groupname
+
+
+    def __eq__(self, other):
+        return self.name == other.name
 
     def parseFile(self, rec_name=None):
         try:
@@ -112,24 +119,27 @@ class PortGroup(object):
                 if line.startswith('#'):
                     continue
                 if line.startswith('@'):
-                    rec_group = line.split(' ')[0][1:].replace('\n', '')
+                    rec_group = line.split(' ')[0][1:].strip()
                     self.parseFile(rec_group)
                     continue
                 if line.strip():
                     port = line.split('#')[0].strip()
+                    if port.startswith('-'):
+                        port = '0-{}'.format(port)
+                    if port.endswith('-'):
+                        port = '{}-65535'.format(port)
                     self._ports.append(port)
         except Exception, e:
-            print e
+            frameinfo = getframeinfo(currentframe())
+            print frameinfo.filename, frameinfo.lineno, e
 
 
-    def ports(self):
-        return self._ports
 
 if __name__ == '__main__':
     hg = HostGroup('qa')
     hg.parseFile()
     print hg.hosts()
     print hg.render_junos()
-    pg = PortGroup('hadoop_mn_services')
+    pg = PortGroup('web_services')
     pg.parseFile()
     print pg.ports()

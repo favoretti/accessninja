@@ -29,13 +29,11 @@ def main(args):
         print('Could not process device {}, is it ignored?'.format(args['<device>']))
         os.exit(1)
 
-    print(devicefiles)
     for device in devicefiles:
         try:
-
             f = open('{}/{}'.format(config.devices, device))
         except Exception, e:
-            print(e)
+            print("wheee", e)
 
         device_object = Device()
         device_object.name = device

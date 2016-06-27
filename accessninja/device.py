@@ -79,11 +79,11 @@ class Device(object):
 
         for ruleset in self._rules:
             self.resolve_hostgroups(ruleset)
-            #self.resolve_portgroups()
+            self.resolve_portgroups(ruleset)
 
         #self.print_stats()
 
-        print(self.render_junos_hostgroups())
+        self.render_junos_hostgroups()
         self.render_junos_rules()
 
 
@@ -105,7 +105,8 @@ class Device(object):
 
 
     def print_rendered_config(self):
-        print('\n'.join(self._rendered_groups))
+        if len(self._rendered_groups):
+            print('\n'.join(self._rendered_groups))
         for ruleset_name, rules in self._rendered_rules.iteritems():
             for idx, rule in enumerate(rules):
                 print('edit firewall filter {} term {}'.format(ruleset_name, idx+1))
@@ -124,7 +125,7 @@ class Device(object):
         for rule in tcp_rules:
             if not name in self._rendered_rules:
                 self._rendered_rules[name] = list()
-            self._rendered_rules[name].append(rule.render_junos())
+            self._rendered_rules[name].append(rule.render_junos(self._portgroups))
 
 
     def render_junos_hostgroups(self):
@@ -143,9 +144,24 @@ class Device(object):
 
     def resolve_hostgroups(self, ruleset):
         for rule in ruleset.tcp_rules:
-            if type(rule.src) == str and rule.src.startswith('@'):
+            if type(rule.src) == str and rule.src_is_group:
                 self.resolve_hostgroup(str(rule.src)[1:])
 
-            if type(rule.dst) == str and rule.dst.startswith('@'):
+            if type(rule.dst) == str and rule.dst_is_group:
                 self.resolve_hostgroup(str(rule.dst)[1:])
+
+    def resolve_portgroups(self, ruleset):
+        for rule in ruleset.tcp_rules:
+            if type(rule.srcport) == str and rule.srcport_is_group:
+                self.resolve_portgroup(str(rule.srcport)[1:])
+
+            if type(rule.dstport) == str and rule.dstport_is_group:
+                self.resolve_portgroup(str(rule.dstport)[1:])
+
+    def resolve_portgroup(self, pgname):
+        pg = PortGroup(pgname)
+        pg.parseFile()
+        if pg not in self._portgroups:
+            self._portgroups.append(pg)
+
 
