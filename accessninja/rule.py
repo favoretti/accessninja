@@ -13,6 +13,21 @@ class TCPRule(object):
         self._expire = None
         self._log = None
 
+    def __eq__(self, other):
+        if self.policy == other.policy and\
+                self.protocol == other.protocol and\
+                self.src == other.src and\
+                self.srcport == other.srcport and\
+                self.dst == other.dst and\
+                self.dstport == other.dstport and\
+                self.stateful == other.stateful and\
+                self.expire == other.expire and\
+                self.log == other.log:
+                    return True
+        else:
+            return False
+
+
     @property
     def policy(self):
         return self._policy
@@ -115,6 +130,19 @@ class ICMPRule(object):
         self._dst = None
         self._expire = None
         self._log = None
+
+
+    def __eq__(self, other):
+        if self.policy == other.policy and\
+                self.protocol == other.protocol and\
+                self.icmptype == other.icmptype and\
+                self.src == other.src and\
+                self.dst == other.dst and\
+                self.expire == other.expire and\
+                self.log == other.log:
+                    return True
+        else:
+            return False
 
     @property
     def policy(self):

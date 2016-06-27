@@ -1,15 +1,18 @@
 #!/usr/bin/env python
 import re
 import sys
+
+from config import Config
 from rule import TCPRule, ICMPRule
 
 class Parser(object):
 
-    tcp_rules = list()
-    icmp_rules = list()
 
     def __init__(self):
-        pass
+        self._name = None
+        self._config = Config()
+        self._tcp_rules = list()
+        self._icmp_rules = list()
 
     def parseLine(self, line):
         #
@@ -23,16 +26,16 @@ class Parser(object):
         #
 
         m = re.search(
-                "^(allow|deny)"                       # match policy
-                "\s+"                                 # match space
-                "(tcp|udp|tcpudp|any)"                # match protocol
-                "\s+"                                 # match space
-                "(?:src\s(\S+))\s*(?:port\s+(\S+))?"  # match 'src <value>'
-                "\s+"                                 # match space
-                "(?:dst\s(\S+))\s*(?:port\s+(\S+))?"  # match 'dst <value>'
-                "(?=(?:.*(stateful))?)"               # match optional 'stateful'
-                "(?=(?:.*expire (\d{8}))?)"           # match optional 'expire <value>'
-                "(?=(?:.*(log))?)", line)             # match optional 'log'
+                "^(allow|deny)"                        # match policy
+                "\s+"                                  # match space
+                "(tcp|udp|tcpudp|any)"                 # match protocol
+                "\s+"                                  # match space
+                "(?:src\s*(\S+))\s*(?:port\s+(\S+))?"  # match 'src <value>'
+                "\s+"                                  # match space
+                "(?:dst\s*(\S+))\s*(?:port\s+(\S+))?"  # match 'dst <value>'
+                "(?=(?:.*(stateful))?)"                # match optional 'stateful'
+                "(?=(?:.*expire (\d{8}))?)"            # match optional 'expire <value>'
+                "(?=(?:.*(log))?)", line)              # match optional 'log'
 
         if m is not None:
             rule = TCPRule()
@@ -45,8 +48,8 @@ class Parser(object):
             rule.stateful = m.group(7)
             rule.expire = m.group(8)
             rule.log = m.group(9)
-            print rule
-            self.rules.append(rule)
+            if not rule in self._tcp_rules:
+                self._tcp_rules.append(rule)
 
         if m is None:
             # We probably encountered an ICMP policy
@@ -59,17 +62,17 @@ class Parser(object):
             #
 
             m = re.search(
-                  "^(allow|deny)"               # match policy
-                  "\s+"                         # match space
-                  "(icmp)"                      # match protocol, only icmp
-                  "\s+"                         # match space
-                  "(?:(?:type\s)?(\S+|any))"    # match icmp type or 'any'
-                  "\s+"                         # match space
-                  "(?:src\s(\S+))"              # match src
-                  "\s+"                         # match space
-                  "(?:dst\s(\S+))"              # match dst
-                  "(?=(?:.*expire (\d{8}))?)"   # match optional 'expire <value>'
-                  "(?=(?:.*(log))?)", line)     # match optional 'log'
+                  "^(allow|deny)"                # match policy
+                  "\s+"                          # match space
+                  "(icmp)"                       # match protocol, only icmp
+                  "\s+"                          # match space
+                  "(?:(?:type\s)?(\S+|any))"     # match icmp type or 'any'
+                  "\s+"                          # match space
+                  "(?:src\s*(\S+))"              # match src
+                  "\s+"                          # match space
+                  "(?:dst\s*(\S+))"              # match dst
+                  "(?=(?:.*expire (\d{8}))?)"    # match optional 'expire <value>'
+                  "(?=(?:.*(log))?)", line)      # match optional 'log'
 
             if m is not None:
                 rule = ICMPRule()
@@ -80,13 +83,15 @@ class Parser(object):
                 rule.dst = m.group(5)
                 rule.expire = m.group(6)
                 rule.log = m.group(7)
-                print rule
-                self.icmp_rules.append(rule)
+                if not rule in self._icmp_rules:
+                    self._icmp_rules.append(rule)
             else:
                 raise Exception("Could not parse the line: {}".format(line))
 
 
-    def parseFile(self, filename):
+    def parseFile(self, filename, update_name=True):
+        if update_name:
+            self._name = filename
         with open(filename) as f:
             lines = f.readlines()
 
@@ -94,8 +99,27 @@ class Parser(object):
             if line.startswith('#'):
                 continue
             if line.startswith('allow') or line.startswith('deny'):
-                parseLine(line)
+                self.parseLine(line)
+            if line.startswith('@'):
+                self.parseFile('{}/{}'.format(self._config.policies, line[1:].strip()), False)
+
+
+    def dump_tcp_rules(self):
+        for rule in self._tcp_rules:
+            print(rule)
+
+
+    def dump_icmp_rules(self):
+        for rule in self._icmp_rules:
+            print(rule)
+
+
+    def print_stats(self):
+        print('\tRuleset {} contains:'.format(self._name))
+        print('\t\t{} parsed TCP rules'.format(len(self._tcp_rules)))
+        print('\t\t{} parsed ICMP rules'.format(len(self._icmp_rules)))
 
 if __name__ == "__main__":
     parser = Parser()
     parser.parseFile(sys.argv[1])
+    parser.dump_icmp_rules()
