@@ -67,7 +67,7 @@ In the &quot;devices&quot; directory you'll add the devices which you want under
     * asa (WIP)
     * arista (WIP)
 
-*   transport, this defines how ACLhound should connect to the device to deploy ACLs. There are 2 options here: telnet &amp; ssh
+*   transport, this defines how Ninja should connect to the device to deploy ACLs. ACLHound used to support telnet, I claim that this is insecure and have dropped it in favor of SSH-only for now.
 *   include statements, these mention the policies that you would like to put on the devices. Multiple entries are allowed here.
 
 Example device file:
