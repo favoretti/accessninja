@@ -1,17 +1,11 @@
 #!/usr/bin/env python
-
-import netrc
-import paramiko
-import time
-import sys
+from os.path import join
 
 from config import Config
-from Exscript.util.interact import read_login
-from Exscript.protocols import SSH2, Telnet, Account
 from group import HostGroup, PortGroup
-from os.path import join
 from parser import Parser
-from tempfile import NamedTemporaryFile
+from renderers.junos import JunosRenderer
+from deployers.junos import JunosDeployer
 
 
 class Device(object):
@@ -57,6 +51,34 @@ class Device(object):
         if value not in ['ssh']:
             raise Exception("The only transport supported currently is ssh")
         self._transport = value
+
+    @property
+    def rendered_config(self):
+        return self._rendered_config
+
+    @rendered_config.setter
+    def rendered_config(self, value):
+        self._rendered_config = value
+
+    @property
+    def rendered_rules(self):
+        return self._rendered_rules
+
+    @property
+    def rendered_groups(self):
+        return self._rendered_groups
+
+    @property
+    def hostgroups(self):
+        return self._hostgroups
+
+    @property
+    def portgroups(self):
+        return self._portgroups
+
+    @property
+    def rules(self):
+        return self._rules
 
     @property
     def save_config(self):
@@ -109,119 +131,19 @@ class Device(object):
             self.resolve_hostgroups(ruleset)
             self.resolve_portgroups(ruleset)
 
-        self.render_junos_hostgroups()
-        self.render_junos_rules()
-        self.render_config()
-
-    def render_junos_rules(self):
-        for ruleset in self._rules:
-            self.render_junos_icmp_rules(ruleset.name, ruleset.icmp_rules)
-            self.render_junos_tcp_rules(ruleset.name, ruleset.tcp_rules)
+        if self._vendor == 'junos':
+            renderer = JunosRenderer(self)
+            renderer.render()
 
     def render_to_file_and_deploy(self):
         self.render()
-        try:
-            username, acc, password = \
-                netrc.netrc().authenticators(self.name)
-            account = Account(name=username, password=password, key=None)
-        except Exception, e:
-            print e
-            print("ERROR: could not find device in ~/.netrc file")
-            print("HINT: either update .netrc or enter username + pass now.")
-            try:
-                account = read_login()
-            except EOFError:
-                print("ERROR: could not find proper username + pass")
-                print("HINT: set username & pass in ~/.netrc for device %s"
-                      % self.name)
-                sys.exit(2)
 
-        def s(conn, line):
-            print("   %s" % line)
-            conn.execute(line)
-
-        f = NamedTemporaryFile(delete=False)
-        print('Stored temporary config at {}'.format(f.name))
-        f.write(self._rendered_config)
-        f.flush()
-
-        tr = paramiko.Transport((self.name, 22))
-        tr.connect(username=username, password=password)
-
-        sftp = paramiko.SFTPClient.from_transport(tr)
-        try:
-            sftp.remove(f.name)
-        except IOError, e:
-            if e.errno != 2:
-                print "Something wrong while uploading"
-                sys.exit(1)
-
-        upload_filename = "/root/config-{}".format(time.strftime("%d-%m-%Y-%H-%M-%S"))
-        print 'Uploading as file: {}'.format(upload_filename)
-        sftp.put(f.name, upload_filename)
-        sftp.close()
-
-        tr.close()
-        f.close()
-
-        print('Config uploaded as {}'.format(upload_filename))
-
-        if self.transport == 'ssh':
-            conn = SSH2(verify_fingerprint=False, debug=1, timeout=360)
-        else:
-            print("ERROR: Unknown transport mechanism: {}".format(self.transport))
-            sys.exit(2)
-
-        print('Logging in to apply the config')
-        conn.set_driver('junos')
-        conn.connect(self.name)
-        conn.login(account)
-
-        conn.execute('cli')
-        conn.execute('set cli screen-length 10000')
-        conn.execute('edit')
-        s(conn, 'load set {}'.format(upload_filename))
-        print('Set loadded, commiting')
-        s(conn, 'commit')
-        print('Commited')
-        s(conn, 'exit')
-        s(conn, 'exit')
-        print('Removing file {}'.format(upload_filename))
-        s(conn, 'rm {}'.format(upload_filename))
-        print('Done.')
-
-    def render_config(self):
-        if len(self._rendered_groups):
-            self._rendered_config = '\n'.join(self._rendered_groups)
-
-        for ruleset_name, rules in self._rendered_rules.iteritems():
-            ruleset_name += '-v4'
-            self._rendered_config += '\ndelete firewall filter {}'.format(ruleset_name)
-            for idx, rule in enumerate(rules):
-                self._rendered_config += '\nedit firewall filter {} term {}'.format(ruleset_name, idx+1)
-                self._rendered_config += '\n'+rule
-                self._rendered_config += '\ntop'
-            self._rendered_config += '\nset firewall filter {} term DROP_ALL then syslog'.format(ruleset_name)
-            self._rendered_config += '\nset firewall filter {} term DROP_ALL then discard\n'.format(ruleset_name)
+        if self._vendor == 'junos':
+            deployer = JunosDeployer(self)
+            deployer.render_to_file_and_deploy()
 
     def print_rendered_config(self):
         print self._rendered_config
-
-    def render_junos_icmp_rules(self, name, icmp_rules):
-        for rule in icmp_rules:
-            if name not in self._rendered_rules:
-                self._rendered_rules[name] = list()
-            self._rendered_rules[name].append(rule.render_junos())
-
-    def render_junos_tcp_rules(self, name, tcp_rules):
-        for rule in tcp_rules:
-            if name not in self._rendered_rules:
-                self._rendered_rules[name] = list()
-            self._rendered_rules[name].append(rule.render_junos(self._portgroups))
-
-    def render_junos_hostgroups(self):
-        for hg in self._hostgroups:
-            self._rendered_groups.append(hg.render_junos())
 
     def resolve_hostgroup(self, hgname):
         hg = HostGroup(hgname)
@@ -241,6 +163,12 @@ class Device(object):
             if type(rule.dst) == str and rule.dst_is_group:
                 self.resolve_hostgroup(str(rule.dst)[1:])
 
+    def resolve_portgroup(self, pgname):
+        pg = PortGroup(pgname)
+        pg.parse_file()
+        if pg not in self._portgroups:
+            self._portgroups.append(pg)
+
     def resolve_portgroups(self, ruleset):
         for rule in ruleset.tcp_rules:
             if type(rule.srcport) == str and rule.srcport_is_group:
@@ -248,9 +176,3 @@ class Device(object):
 
             if type(rule.dstport) == str and rule.dstport_is_group:
                 self.resolve_portgroup(str(rule.dstport)[1:])
-
-    def resolve_portgroup(self, pgname):
-        pg = PortGroup(pgname)
-        pg.parse_file()
-        if pg not in self._portgroups:
-            self._portgroups.append(pg)
