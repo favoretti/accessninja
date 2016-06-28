@@ -111,6 +111,7 @@ class Device(object):
 
         self.render_junos_hostgroups()
         self.render_junos_rules()
+        self.render_config()
 
     def render_junos_rules(self):
         for ruleset in self._rules:
@@ -140,12 +141,9 @@ class Device(object):
             conn.execute(line)
 
         f = NamedTemporaryFile(delete=False)
-        print f.name
-
+        print('Stored temporary config at {}'.format(f.name))
         f.write(self._rendered_config)
         f.flush()
-
-        print self.name
 
         tr = paramiko.Transport((self.name, 22))
         tr.connect(username=username, password=password)
@@ -158,7 +156,7 @@ class Device(object):
                 print "Something wrong while uploading"
                 sys.exit(1)
 
-        upload_filename = "./config-{}".format(time.strftime("%d-%m-%Y-%H-%M-%S"))
+        upload_filename = "/root/config-{}".format(time.strftime("%d-%m-%Y-%H-%M-%S"))
         print 'Uploading as file: {}'.format(upload_filename)
         sftp.put(f.name, upload_filename)
         sftp.close()
@@ -186,7 +184,7 @@ class Device(object):
         s(conn, 'commit')
         print('Commited')
 
-    def print_rendered_config(self):
+    def render_config(self):
         if len(self._rendered_groups):
             self._rendered_config = '\n'.join(self._rendered_groups)
 
@@ -197,6 +195,7 @@ class Device(object):
                 self._rendered_config += '\n'+rule
                 self._rendered_config += '\ntop'
 
+    def print_rendered_config(self):
         print self._rendered_config
 
     def render_junos_icmp_rules(self, name, icmp_rules):
