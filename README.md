@@ -139,8 +139,8 @@ One last thing to keep in mind, remarks/comments are not being pushed towards th
 	allow tcp src 2.2.2.2 dst 10.0.0.0/8 port 5-10 expire 20140504
 	allow tcp src @mp-servers dst 10.0.0.0/8
 	deny tcp src @bgp-peers port any dst @mp-servers port @webports # another comment
-	allow tcp src 2.2.2.2 port 1 dst 10.0.0.0/8 port 2,1-2,4
-	allow tcp src 2.2.2.2 port 1 dst 10.0.0.0/8 port 2,2,3,4
+	allow tcp src 2.2.2.2 port 1 dst 10.0.0.0/8 port 1023-
+	allow tcp src 2.2.2.2 port 1 dst 10.0.0.0/8 port -1023
 	allow icmp 128 0 src any dst 192.0.2.0/24 # icmpv6 echo request
 	allow icmp 129 0 src 192.0.2.0/24 dst any # icmpv6 echo reply
 
