@@ -189,6 +189,7 @@ class Device(object):
             self._rendered_config = '\n'.join(self._rendered_groups)
 
         for ruleset_name, rules in self._rendered_rules.iteritems():
+            ruleset_name += '-v4'
             self._rendered_config += '\ndelete firewall filter {}'.format(ruleset_name)
             for idx, rule in enumerate(rules):
                 self._rendered_config += '\nedit firewall filter {} term {}'.format(ruleset_name, idx+1)
