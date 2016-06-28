@@ -184,6 +184,11 @@ class Device(object):
         print('Set loadded, commiting')
         s(conn, 'commit')
         print('Commited')
+        s(conn, 'exit')
+        s(conn, 'exit')
+        print('Removing file {}'.format(upload_filename))
+        s(conn, 'rm {}'.format(upload_filename))
+        print('Done.')
 
     def render_config(self):
         if len(self._rendered_groups):
