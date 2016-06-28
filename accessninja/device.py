@@ -194,6 +194,8 @@ class Device(object):
                 self._rendered_config += '\nedit firewall filter {} term {}'.format(ruleset_name, idx+1)
                 self._rendered_config += '\n'+rule
                 self._rendered_config += '\ntop'
+            self._rendered_config += '\nset firewall filter {} term DROP_ALL then syslog'.format(ruleset_name)
+            self._rendered_config += '\nset firewall filter {} term DROP_ALL then discard\n'.format(ruleset_name)
 
     def print_rendered_config(self):
         print self._rendered_config
