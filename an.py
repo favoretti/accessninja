@@ -40,11 +40,13 @@ def main(args):
                 print('Skipping {}, unsupported vendor: {}'.format(device_object.name, device_object.vendor))
             else:
                 device_object.render()
+                device_object.print_rendered_config()
 
     if args['deploy']:
         for device in devicefiles:
             device_object = Device()
             device_object.parse_file(device)
+            device_object.render_to_file_and_deploy()
 
 
 if __name__ == '__main__':

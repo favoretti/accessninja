@@ -1,5 +1,13 @@
 #!/usr/bin/env python
+
+import netrc
+import paramiko
+import time
+import sys
+
 from config import Config
+from Exscript.util.interact import read_login
+from Exscript.protocols import SSH2, Telnet, Account
 from group import HostGroup, PortGroup
 from os.path import join
 from parser import Parser
@@ -109,11 +117,74 @@ class Device(object):
             self.render_junos_icmp_rules(ruleset.name, ruleset.icmp_rules)
             self.render_junos_tcp_rules(ruleset.name, ruleset.tcp_rules)
 
-        self.print_rendered_config()
+    def render_to_file_and_deploy(self):
+        self.render()
+        try:
+            username, acc, password = \
+                netrc.netrc().authenticators(self.name)
+            account = Account(name=username, password=password, key=None)
+        except Exception, e:
+            print e
+            print("ERROR: could not find device in ~/.netrc file")
+            print("HINT: either update .netrc or enter username + pass now.")
+            try:
+                account = read_login()
+            except EOFError:
+                print("ERROR: could not find proper username + pass")
+                print("HINT: set username & pass in ~/.netrc for device %s"
+                      % self.name)
+                sys.exit(2)
 
-    def render_to_file(self):
+        def s(conn, line):
+            print("   %s" % line)
+            conn.execute(line)
+
         f = NamedTemporaryFile(delete=False)
-        pass
+        print f.name
+
+        f.write(self._rendered_config)
+        f.flush()
+
+        print self.name
+
+        tr = paramiko.Transport((self.name, 22))
+        tr.connect(username=username, password=password)
+
+        sftp = paramiko.SFTPClient.from_transport(tr)
+        try:
+            sftp.remove(f.name)
+        except IOError, e:
+            if e.errno != 2:
+                print "Something wrong while uploading"
+                sys.exit(1)
+
+        upload_filename = "./config-{}".format(time.strftime("%d-%m-%Y-%H-%M-%S"))
+        print 'Uploading as file: {}'.format(upload_filename)
+        sftp.put(f.name, upload_filename)
+        sftp.close()
+
+        tr.close()
+        f.close()
+
+        print('Config uploaded as {}'.format(upload_filename))
+
+        if self.transport == 'ssh':
+            conn = SSH2(verify_fingerprint=False, debug=1, timeout=360)
+        else:
+            print("ERROR: Unknown transport mechanism: {}".format(self.transport))
+            sys.exit(2)
+
+        print('Logging in to apply the config')
+        conn.set_driver('junos')
+        conn.connect(self.name)
+        conn.login(account)
+
+        conn.execute('cli')
+        conn.execute('edit')
+        s(conn, 'load set {}'.format(upload_filename))
+        print('Set loadded, commiting')
+        s(conn, 'commit')
+        print('Commited')
 
     def print_rendered_config(self):
         if len(self._rendered_groups):

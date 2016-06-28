@@ -172,7 +172,7 @@ class TCPRule(object):
             config_blob.append('set from protocol {}'.format(self.protocol))
 
         if self.protocol == 'tcpudp':
-            config_blob.append('set from protocol tcp from protocol udp')
+            config_blob.append('set from protocol tcp protocol udp')
 
         if self.src and not self.src_is_any:
             if self.src_is_group:
@@ -205,12 +205,12 @@ class TCPRule(object):
                 config_blob.append('set from destination-port {}'.format(self.format_port_range(self.dstport)))
 
         if self.log:
-            config_blob.append('then syslog')
+            config_blob.append('set then syslog')
 
         if self.policy == 'allow':
-            config_blob.append('then accept')
+            config_blob.append('set then accept')
         else:
-            config_blob.append('then discard')
+            config_blob.append('set then discard')
 
         return '\n'.join(config_blob)
 
@@ -359,12 +359,12 @@ class ICMPRule(object):
                 config_blob.append('set from destination-address {}'.format(self.dst))
 
         if self.log:
-            config_blob.append('then syslog')
+            config_blob.append('set then syslog')
 
         if self.policy == 'allow':
-            config_blob.append('then accept')
+            config_blob.append('set then accept')
         else:
-            config_blob.append('then discard')
+            config_blob.append('set then discard')
 
         return '\n'.join(config_blob)
 
