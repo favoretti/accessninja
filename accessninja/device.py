@@ -178,6 +178,7 @@ class Device(object):
         conn.login(account)
 
         conn.execute('cli')
+        conn.execute('set cli screen-length 10000')
         conn.execute('edit')
         s(conn, 'load set {}'.format(upload_filename))
         print('Set loadded, commiting')
