@@ -49,7 +49,7 @@ Hence, also this part of the documentation is blatantly stolen from ACLHound ;)
 
 In order to fully understand AccessNinja and its operation, it is of most importance that you understand its directory structure, as this is where you'll be spending most of your time when building ACLs.
 
-The directories containing parts the ACLs are defined in `~/.accessninja/config` (e.g., `location = ~/aclhound`).  These directories should be checked into version control, and an appropriate workflow defined for reviewing and accepting changes.
+The directories containing parts the ACLs are defined in `~/.accessninja/config` (as shown above).  These directories should be checked into version control, and an appropriate workflow defined for reviewing and accepting changes.
 
 Ninja needs 3 directories, containing the following information:
 
