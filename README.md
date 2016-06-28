@@ -1,4 +1,4 @@
-h1. Getting started
+# Getting started
 
 Create a config file in `~/.accessninja/config` with the following contents:
 ```
@@ -9,7 +9,7 @@ policies = /Users/vlazarenko/REPOS/ecg-networking/policy
 ```
 The paths should point to your check-out of ACLHound configuration files.
 
-h2. Basic syntax
+## Basic syntax
 
 ```
 $ ./an.py
