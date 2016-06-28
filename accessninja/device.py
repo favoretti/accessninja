@@ -1,11 +1,10 @@
 #!/usr/bin/env python
-import sys
-
-from os.path import join
-
 from config import Config
 from group import HostGroup, PortGroup
+from os.path import join
 from parser import Parser
+from tempfile import NamedTemporaryFile
+
 
 class Device(object):
 
@@ -21,8 +20,7 @@ class Device(object):
         self._config = Config()
         self._rendered_groups = list()
         self._rendered_rules = dict()
-
-
+        self._rendered_config = ''
 
     @property
     def vendor(self):
@@ -30,7 +28,8 @@ class Device(object):
 
     @vendor.setter
     def vendor(self, value):
-        if not value in ['junos', 'ios', 'arista', 'asa']: raise Exception("The only vendors currently supported are junos, arista, ios, asa")
+        if value not in ['junos', 'ios', 'arista', 'asa']:
+            raise Exception("The only vendors currently supported are junos, arista, ios, asa")
         self._vendor = value
 
     @property
@@ -47,7 +46,8 @@ class Device(object):
 
     @transport.setter
     def transport(self, value):
-        if not value in ['ssh']: raise Exception("The only transport supported currently is ssh")
+        if value not in ['ssh']:
+            raise Exception("The only transport supported currently is ssh")
         self._transport = value
 
     @property
@@ -58,10 +58,31 @@ class Device(object):
     def save_config(self, value):
         self._save_config = value
 
-
     def add_include(self, value):
         self._include_list.append(value)
 
+    def parse_file(self, name):
+        self.name = name
+        config = Config()
+        try:
+            f = open('{}/{}'.format(config.devices, name))
+        except Exception, e:
+            print('Could not open device file', e)
+            raise e
+
+        lines = f.readlines()
+
+        for line in lines:
+            if line.startswith('#'):
+                continue
+            if line.strip().startswith('vendor'):
+                self.vendor = line.strip().split(' ')[1]
+            if line.strip().startswith('transport'):
+                self.transport = line.strip().split(' ')[1]
+            if line.strip().startswith('save_config'):
+                self.save_config = line.strip().split(' ')[1]
+            if line.strip().startswith('include'):
+                self.add_include(line.strip().split(' ')[1])
 
     def print_stats(self):
         for hg in self._hostgroups:
@@ -69,32 +90,19 @@ class Device(object):
         for rule in self._rules:
             rule.print_stats()
 
-
     def render(self):
         print('Rendering {}'.format(self._name))
         for include in self._include_list:
             parsed_ruleset = Parser()
-            parsed_ruleset.parseFile(join(self._config.policies, include))
+            parsed_ruleset.parse_file(join(self._config.policies, include))
             self._rules.append(parsed_ruleset)
 
         for ruleset in self._rules:
             self.resolve_hostgroups(ruleset)
             self.resolve_portgroups(ruleset)
 
-        #self.print_stats()
-
         self.render_junos_hostgroups()
         self.render_junos_rules()
-
-
-    def afi_match(host):
-        if host == "any":
-            return True
-        elif IPNetwork(host).version == afi:
-            return True
-        else:
-            return False
-
 
     def render_junos_rules(self):
         for ruleset in self._rules:
@@ -103,30 +111,34 @@ class Device(object):
 
         self.print_rendered_config()
 
+    def render_to_file(self):
+        f = NamedTemporaryFile(delete=False)
+        pass
 
     def print_rendered_config(self):
         if len(self._rendered_groups):
-            print('\n'.join(self._rendered_groups))
-        for ruleset_name, rules in self._rendered_rules.iteritems():
-            for idx, rule in enumerate(rules):
-                print('edit firewall filter {} term {}'.format(ruleset_name, idx+1))
-                print(rule)
-                print('top')
+            self._rendered_config = '\n'.join(self._rendered_groups)
 
+        for ruleset_name, rules in self._rendered_rules.iteritems():
+            self._rendered_config += '\ndelete firewall filter {}'.format(ruleset_name)
+            for idx, rule in enumerate(rules):
+                self._rendered_config += '\nedit firewall filter {} term {}'.format(ruleset_name, idx+1)
+                self._rendered_config += '\n'+rule
+                self._rendered_config += '\ntop'
+
+        print self._rendered_config
 
     def render_junos_icmp_rules(self, name, icmp_rules):
         for rule in icmp_rules:
-            if not name in self._rendered_rules:
+            if name not in self._rendered_rules:
                 self._rendered_rules[name] = list()
             self._rendered_rules[name].append(rule.render_junos())
 
-
     def render_junos_tcp_rules(self, name, tcp_rules):
         for rule in tcp_rules:
-            if not name in self._rendered_rules:
+            if name not in self._rendered_rules:
                 self._rendered_rules[name] = list()
             self._rendered_rules[name].append(rule.render_junos(self._portgroups))
-
 
     def render_junos_hostgroups(self):
         for hg in self._hostgroups:
@@ -134,7 +146,7 @@ class Device(object):
 
     def resolve_hostgroup(self, hgname):
         hg = HostGroup(hgname)
-        hg.parseFile()
+        hg.parse_file()
         if hg.has_inline_groups:
             for ihg in hg.inline_groups:
                 if ihg not in self._hostgroups:
@@ -160,8 +172,6 @@ class Device(object):
 
     def resolve_portgroup(self, pgname):
         pg = PortGroup(pgname)
-        pg.parseFile()
+        pg.parse_file()
         if pg not in self._portgroups:
             self._portgroups.append(pg)
-
-

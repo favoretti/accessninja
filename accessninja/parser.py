@@ -6,8 +6,8 @@ import sys
 from config import Config
 from rule import TCPRule, ICMPRule
 
-class Parser(object):
 
+class Parser(object):
 
     @property
     def name(self):
@@ -27,7 +27,7 @@ class Parser(object):
         self._tcp_rules = list()
         self._icmp_rules = list()
 
-    def parseLine(self, line):
+    def parse_line(self, line):
         #
         # < allow | deny > \
         # < tcp | udp | any > \
@@ -61,7 +61,7 @@ class Parser(object):
             rule.stateful = m.group(7)
             rule.expire = m.group(8)
             rule.log = m.group(9)
-            if not rule in self._tcp_rules:
+            if rule not in self._tcp_rules:
                 self._tcp_rules.append(rule)
 
         if m is None:
@@ -96,13 +96,12 @@ class Parser(object):
                 rule.dst = m.group(5)
                 rule.expire = m.group(6)
                 rule.log = m.group(7)
-                if not rule in self._icmp_rules:
+                if rule not in self._icmp_rules:
                     self._icmp_rules.append(rule)
             else:
                 raise Exception("Could not parse the line: {}".format(line))
 
-
-    def parseFile(self, filename, update_name=True):
+    def parse_file(self, filename, update_name=True):
         if update_name:
             self._name = ntpath.basename(filename)
         with open(filename) as f:
@@ -112,20 +111,17 @@ class Parser(object):
             if line.startswith('#'):
                 continue
             if line.startswith('allow') or line.startswith('deny'):
-                self.parseLine(line)
+                self.parse_line(line)
             if line.startswith('@'):
-                self.parseFile('{}/{}'.format(self._config.policies, line[1:].strip()), False)
-
+                self.parse_file('{}/{}'.format(self._config.policies, line[1:].strip()), False)
 
     def dump_tcp_rules(self):
         for rule in self._tcp_rules:
             print(rule)
 
-
     def dump_icmp_rules(self):
         for rule in self._icmp_rules:
             print(rule)
-
 
     def print_stats(self):
         print('\tRuleset {} contains:'.format(self._name))
@@ -134,5 +130,5 @@ class Parser(object):
 
 if __name__ == "__main__":
     parser = Parser()
-    parser.parseFile(sys.argv[1])
+    parser.parse_file(sys.argv[1])
     parser.dump_icmp_rules()

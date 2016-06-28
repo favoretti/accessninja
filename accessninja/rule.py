@@ -1,5 +1,6 @@
 from ipaddr import IPNetwork
 
+
 class TCPRule(object):
 
     def __init__(self):
@@ -27,14 +28,14 @@ class TCPRule(object):
         else:
             return False
 
-
     @property
     def policy(self):
         return self._policy
 
     @policy.setter
     def policy(self, value):
-        if not value in ['allow', 'deny']: raise Exception("policy should be either 'allow' or 'deny'")
+        if value not in ['allow', 'deny']:
+            raise Exception("policy should be either 'allow' or 'deny'")
         self._policy = value
 
     @property
@@ -43,7 +44,8 @@ class TCPRule(object):
 
     @protocol.setter
     def protocol(self, value):
-        if not value in ['tcp', 'udp', 'tcpudp', 'any']: raise Exception("protocol must be either 'tcp', 'udp', 'tcpudp' or 'any'")
+        if value not in ['tcp', 'udp', 'tcpudp', 'any']:
+            raise Exception("protocol must be either 'tcp', 'udp', 'tcpudp' or 'any'")
         self._protocol = value
 
     @property
@@ -146,9 +148,8 @@ class TCPRule(object):
     def log(self, value):
         self._log = value
 
-
-    def format_port_range(self, port):
-        fport = 'BUG'
+    @staticmethod
+    def format_port_range(port):
         if port.startswith('-'):
             fport = '0{}'.format(port)
         elif port.endswith('-'):
@@ -213,12 +214,23 @@ class TCPRule(object):
 
         return '\n'.join(config_blob)
 
-
     def __str__(self):
-        return "RULE: POL:{} PROTO:{} SRC:{} PORT:{} DST:{} PORT:{} STATE:{} EXPIRE:{} LOG:{}".format(self._policy, self._protocol, self._src if type(self._src) == str else self._src.with_netmask, self._srcport, self._dst if type(self._dst) == str else self._dst.with_netmask, self._dstport, self._stateful, self._expire, self._log)
+        return "RULE: POL:{} PROTO:{} SRC:{} PORT:{} "\
+            "DST:{} PORT:{} STATE:{} EXPIRE:{} LOG:{}".format(self._policy,
+                                                              self._protocol,
+                                                              self._src if type(self._src) == str
+                                                              else self._src.with_netmask,
+                                                              self._srcport,
+                                                              self._dst if type(self._dst) == str
+                                                              else self._dst.with_netmask,
+                                                              self._dstport,
+                                                              self._stateful,
+                                                              self._expire,
+                                                              self._log)
 
     def __repr__(self):
         return "Ruleset"
+
 
 class ICMPRule(object):
 
@@ -230,7 +242,6 @@ class ICMPRule(object):
         self._dst = None
         self._expire = None
         self._log = None
-
 
     def __eq__(self, other):
         if self.policy == other.policy and\
@@ -250,7 +261,8 @@ class ICMPRule(object):
 
     @policy.setter
     def policy(self, value):
-        if not value in ['allow', 'deny']: raise Exception("policy should be either 'allow' or 'deny'")
+        if value not in ['allow', 'deny']:
+            raise Exception("policy should be either 'allow' or 'deny'")
         self._policy = value
 
     @property
@@ -259,7 +271,8 @@ class ICMPRule(object):
 
     @protocol.setter
     def protocol(self, value):
-        if not value in ['icmp']: raise Exception("protocol must be 'icmp'")
+        if value not in ['icmp']:
+            raise Exception("protocol must be 'icmp'")
         self._protocol = value
 
     @property
@@ -356,7 +369,16 @@ class ICMPRule(object):
         return '\n'.join(config_blob)
 
     def __str__(self):
-        return "ICMP RULE: POL:{} PROTO:{} TYPE: {} SRC:{} DST:{} EXPIRE:{} LOG:{}".format(self._policy, self._protocol, self._icmptype, (self._src if type(self._src) == str else self._src.with_netmask), (self._dst if type(self._dst) == str else self._dst.with_netmask), self._expire, self._log)
+        return "ICMP RULE: POL:{} PROTO:{} " \
+            "TYPE: {} SRC:{} DST:{} EXPIRE:{} LOG:{}".format(self._policy,
+                                                             self._protocol,
+                                                             self._icmptype,
+                                                             (self._src if type(self._src) == str
+                                                                 else self._src.with_netmask),
+                                                             (self._dst if type(self._dst) == str
+                                                                 else self._dst.with_netmask),
+                                                             self._expire,
+                                                             self._log)
 
     def __repr__(self):
         return "Ruleset"
