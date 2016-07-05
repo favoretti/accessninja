@@ -5,6 +5,7 @@ from config import Config
 from group import HostGroup, PortGroup
 from parser import Parser
 from renderers.junos import JunosRenderer
+from renderers.ios import IOSRenderer
 from deployers.junos import JunosDeployer
 
 
@@ -133,6 +134,10 @@ class Device(object):
 
         if self._vendor == 'junos':
             renderer = JunosRenderer(self)
+            renderer.render()
+
+        if self._vendor == 'ios':
+            renderer = IOSRenderer(self)
             renderer.render()
 
     def render_to_file_and_deploy(self):

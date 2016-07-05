@@ -36,7 +36,7 @@ def main(args):
             device_object = Device()
             device_object.parse_file(device)
 
-            if device_object.vendor != 'junos':
+            if device_object.vendor not in ['junos', 'ios']:
                 print('Skipping {}, unsupported vendor: {}'.format(device_object.name, device_object.vendor))
             else:
                 device_object.render()

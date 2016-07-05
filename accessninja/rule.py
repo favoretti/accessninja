@@ -1,4 +1,4 @@
-from ipaddr import IPNetwork
+from netaddr import IPNetwork
 
 
 class TCPRule(object):
@@ -50,7 +50,7 @@ class TCPRule(object):
 
     @property
     def src(self):
-        return self._src if type(self._src) == str else self._src.with_netmask
+        return self._src if type(self._src) is str else self._src.cidr
 
     @src.setter
     def src(self, value):
@@ -64,7 +64,7 @@ class TCPRule(object):
 
     @property
     def src_is_group(self):
-        return self.src and self.src.startswith('@')
+        return self.src and type(self.src) is str and self.src.startswith('@')
 
     @property
     def src_is_any(self):
@@ -88,7 +88,7 @@ class TCPRule(object):
 
     @property
     def dst(self):
-        return self._dst if type(self._dst) == str else self._dst.with_netmask
+        return self._dst if type(self._dst) is str else self._dst.cidr
 
     @dst.setter
     def dst(self, value):
@@ -102,7 +102,7 @@ class TCPRule(object):
 
     @property
     def dst_is_group(self):
-        return self.dst and self.dst.startswith('@')
+        return self.dst and type(self.dst) is str and self.dst.startswith('@')
 
     @property
     def dst_is_any(self):
@@ -149,7 +149,7 @@ class TCPRule(object):
         self._log = value
 
     @staticmethod
-    def format_port_range(port):
+    def format_junos_port_range(port):
         if port.startswith('-'):
             fport = '0{}'.format(port)
         elif port.endswith('-'):
@@ -159,12 +159,78 @@ class TCPRule(object):
 
         return fport
 
+    @staticmethod
+    def format_ios_port_range(port):
+        if port.startswith('-'):
+            fport = 'range 0 {}'.format(port[1:])
+        elif port.endswith('-'):
+            fport = 'range {} 65535'.format(port[0:-1])
+        else:
+            fport = 'eq {}'.format(port)
+
+        return fport
+
     def render_port_list(self, portlist, direction):
         config_blob = ''
         for port in portlist:
-            config_blob = '{}{}-port {} '.format(config_blob, direction, self.format_port_range(port))
+            config_blob = '{}{}-port {} '.format(config_blob, direction, self.format_junos_port_range(port))
 
         return config_blob
+
+    def expand_ios_groups(self, line):
+        pass
+
+    def render_ios(self):
+        line = ''
+
+        if self.policy == 'allow':
+            line += 'permit '
+
+        if self.policy == 'deny':
+            line += 'deny '
+
+        if self.protocol == 'any' or self.protocol == 'tcpudp':
+            line += 'ip '
+        else:
+            line += '{} '.format(self.protocol)
+
+        if self.src_is_any:
+            line += '{} '.format(self.src)
+        elif self.src_is_group:
+            line += 'addrgroup {} '.format(self.src[1:])
+        elif type(self.src) is not str and self.src.prefixlen in [32, 128]:
+            line += 'host {} '.format(self.src.ip)
+        elif type(self.src) is not str and self.src.version == 4:
+            line += '{} {} '.format(self.src.network, self.src.hostmask)
+
+        if self.srcport and not self.srcport_is_any:
+            if self.srcport_is_group:
+                line += 'portgroup {} '.format(self.srcport[1:])
+            else:
+                line += '{} '.format(self.format_ios_port_range(self.srcport))
+
+        if self.dst_is_any:
+            line += '{} '.format(self.dst)
+        elif self.dst_is_group:
+            line += 'addrgroup {} '.format(self.dst[1:])
+        elif type(self.dst) is not str and self.dst.prefixlen in [32, 128]:
+            line += 'host {} '.format(self.dst.ip)
+        elif type(self.dst) is not str and self.dst.version == 4:
+            line += '{} {} '.format(self.dst.network, self.dst.hostmask)
+
+        if self.dstport and not self.dstport_is_any:
+            if self.dstport_is_group:
+                line += 'portgroup {} '.format(self.dstport[1:])
+            else:
+                line += '{} '.format(self.format_ios_port_range(self.dstport))
+
+        if self.stateful and self.protocol == 'tcp':
+            line += 'established '
+
+        if self.log:
+            line += 'log'
+
+        return line
 
     def render_junos(self, portgroups):
         config_blob = list()
@@ -187,7 +253,7 @@ class TCPRule(object):
                 ports = self.render_port_list(group.ports, 'source')
                 config_blob.append('set from {}'.format(ports))
             else:
-                config_blob.append('set from source-port {}'.format(self.format_port_range(self.srcport)))
+                config_blob.append('set from source-port {}'.format(self.format_junos_port_range(self.srcport)))
 
         if self.dst and not self.dst_is_any:
             if self.dst_is_group:
@@ -202,7 +268,7 @@ class TCPRule(object):
                 ports = self.render_port_list(group.ports, 'destination')
                 config_blob.append('set from {}'.format(ports))
             else:
-                config_blob.append('set from destination-port {}'.format(self.format_port_range(self.dstport)))
+                config_blob.append('set from destination-port {}'.format(self.format_junos_port_range(self.dstport)))
 
         if self.log:
             config_blob.append('set then syslog')

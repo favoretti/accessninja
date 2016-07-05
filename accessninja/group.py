@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 from config import Config
 from inspect import currentframe, getframeinfo
+from netaddr import IPNetwork
 
 
 class HostGroup(object):
@@ -76,6 +77,25 @@ class HostGroup(object):
                 config = '{}\nset policy-options prefix-list {} {}'.format(config, self.name, prefix)
         return config
 
+    def render_ios(self, subgroup=False):
+        config = ''
+        if not subgroup:
+            config = 'no object-group ip address {}\n'.format(self.name)
+            config += 'object-group ip address {}'.format(self.name)
+        for prefix in self._prefixes:
+            if prefix.startswith('@'):
+                ihg = [g for g in self._inline_hostgroups if g.name == prefix[1:]][0]
+                config += ihg.render_ios(True)
+            else:
+                ipn = IPNetwork(prefix)
+                if ipn.prefixlen == 32:
+                    config = '{}\nhost {}'.format(config, ipn.ip)
+                else:
+                    config = '{}\n{} {}'.format(config, ipn.ip, ipn.netmask)
+        if not subgroup:
+            config += '\nexit'
+        return config
+
 
 class PortGroup(object):
 
@@ -98,6 +118,9 @@ class PortGroup(object):
 
     def __eq__(self, other):
         return self.name == other.name
+
+    def __repr__(self):
+        return self.name
 
     def parse_file(self, rec_name=None):
         try:
@@ -125,6 +148,18 @@ class PortGroup(object):
         except Exception, e:
             frameinfo = getframeinfo(currentframe())
             print frameinfo.filename, frameinfo.lineno, e
+
+    def render_ios(self):
+        config = 'no object-group ip port {}\n'.format(self.name)
+        config += 'object-group ip port {}\n'.format(self.name)
+        for port in self.ports:
+            if '-' in port:
+                split = port.split('-')
+                config += 'range {} {}\n'.format(split[0], split[1])
+            else:
+                config += 'eq {}\n'.format(port)
+        config += 'exit'
+        return config
 
 if __name__ == '__main__':
     hg = HostGroup('qa')
