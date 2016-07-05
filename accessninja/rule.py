@@ -409,6 +409,9 @@ class ICMPRule(object):
     def log(self, value):
         self._log = value
 
+    def render_ios(self):
+        return ''  # FIXME: render proper ICMP rules for IOS
+
     def render_junos(self):
         config_blob = list()
         config_blob.append('set from protocol icmp')

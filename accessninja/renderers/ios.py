@@ -22,9 +22,11 @@ class IOSRenderer(object):
             ruleset_name += '-v4'
             rendered_config += '\nno ip access-list extended {}'.format(ruleset_name)
             rendered_config += '\nip access-list extended {}'.format(ruleset_name)
+            rendered_config += '\npermit ip any any'.format(ruleset_name)
             for idx, rule in enumerate(rules):
                 rendered_config += '\n' + rule
 
+            rendered_config += '\nno permit ip any any'
             rendered_config += '\nexit'
 
         self._device.rendered_config = rendered_config
@@ -33,7 +35,7 @@ class IOSRenderer(object):
         for rule in icmp_rules:
             if name not in self._device.rendered_rules:
                 self._device.rendered_rules[name] = list()
-            self._device.rendered_rules[name].append(rule.render_junos())
+            self._device.rendered_rules[name].append(rule.render_ios())
 
     def render_ios_tcp_rules(self, name, tcp_rules):
         for rule in tcp_rules:
