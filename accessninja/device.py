@@ -7,6 +7,7 @@ from parser import Parser
 from renderers.junos import JunosRenderer
 from renderers.ios import IOSRenderer
 from deployers.junos import JunosDeployer
+from deployers.ios import IOSDeployer
 
 
 class Device(object):
@@ -145,6 +146,10 @@ class Device(object):
 
         if self._vendor == 'junos':
             deployer = JunosDeployer(self)
+            deployer.render_to_file_and_deploy()
+
+        if self._vendor == 'ios':
+            deployer = IOSDeployer(self)
             deployer.render_to_file_and_deploy()
 
     def print_rendered_config(self):
