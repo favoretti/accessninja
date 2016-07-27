@@ -72,6 +72,11 @@ class HostGroup(object):
         config = 'delete policy-options prefix-list {}'.format(self.name)
         for prefix in self._prefixes:
             if prefix.startswith('@'):
+                for ihg in self._inline_hostgroups:
+                    if ihg.name == prefix[1:]:
+                        config = '{}\ndelete groups {}'.format(config, ihg.name)
+                        for iprefix in ihg._prefixes:
+                            config = '{}\nset groups {} policy-options prefix-list {} {}'.format(config, ihg.name, ihg.name, iprefix)
                 config = '{}\nset policy-options prefix-list {} apply-groups {}'.format(config, self.name, prefix[1:])
             else:
                 config = '{}\nset policy-options prefix-list {} {}'.format(config, self.name, prefix)
