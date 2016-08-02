@@ -13,6 +13,8 @@ class JunosDeployer(object):
         self._device = device
 
     def render_to_file_and_deploy(self):
+        username = ''
+        password = ''
         try:
             username, acc, password = \
                 netrc.netrc().authenticators(self._device.name)

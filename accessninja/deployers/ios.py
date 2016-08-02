@@ -1,6 +1,4 @@
 import netrc
-import sys
-import time
 from tempfile import NamedTemporaryFile
 from netmiko import ConnectHandler
 

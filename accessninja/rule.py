@@ -409,7 +409,8 @@ class ICMPRule(object):
     def log(self, value):
         self._log = value
 
-    def render_ios(self):
+    @staticmethod
+    def render_ios():
         return ''  # FIXME: render proper ICMP rules for IOS
 
     def render_junos(self):
