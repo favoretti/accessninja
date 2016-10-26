@@ -13,6 +13,7 @@ class TCPRule(object):
         self._stateful = None
         self._expire = None
         self._log = None
+        self._mirror = None
 
     def __eq__(self, other):
         if self.policy == other.policy and\
@@ -23,7 +24,8 @@ class TCPRule(object):
                 self.dstport == other.dstport and\
                 self.stateful == other.stateful and\
                 self.expire == other.expire and\
-                self.log == other.log:
+                self.log == other.log and\
+                self.mirror == other.mirror:
                     return True
         else:
             return False
@@ -44,8 +46,8 @@ class TCPRule(object):
 
     @protocol.setter
     def protocol(self, value):
-        if value not in ['tcp', 'udp', 'tcpudp', 'any']:
-            raise Exception("protocol must be either 'tcp', 'udp', 'tcpudp' or 'any'")
+        if value not in ['tcp', 'udp', 'tcpudp', 'gre', 'esp', 'any']:
+            raise Exception("protocol must be either 'tcp', 'udp', 'tcpudp', 'gre', 'esp' or 'any'")
         self._protocol = value
 
     @property
@@ -272,6 +274,9 @@ class TCPRule(object):
 
         if self.log:
             config_blob.append('set then syslog')
+       
+        if self.mirror:
+            config_blob.append('set then port-mirror')
 
         if self.policy == 'allow':
             config_blob.append('set then accept')
@@ -409,8 +414,7 @@ class ICMPRule(object):
     def log(self, value):
         self._log = value
 
-    @staticmethod
-    def render_ios():
+    def render_ios(self):
         return ''  # FIXME: render proper ICMP rules for IOS
 
     def render_junos(self):

@@ -34,21 +34,22 @@ class Parser(object):
         # src < prefix | $ip | @hostgroup | any > [ port number | range | @portgroup | any ] \
         # dst < prefix | $ip | @hostgroup | any > [ port number | range | @portgroup | any ] \
         # [ stateful ] \
-        # [ expire YYYYMMDD ] [ log ] \
+        # [ expire YYYYMMDD ] [ log ] [mirror] \
         # [ # comment ]
         #
 
         m = re.search(
                 "^(allow|deny)"                        # match policy
                 "\s+"                                  # match space
-                "(tcp|udp|tcpudp|any)"                 # match protocol
+                "(tcp|udp|tcpudp|esp|gre|any)"         # match protocol
                 "\s+"                                  # match space
                 "(?:src\s*(\S+))\s*(?:port\s+(\S+))?"  # match 'src <value>'
                 "\s+"                                  # match space
                 "(?:dst\s*(\S+))\s*(?:port\s+(\S+))?"  # match 'dst <value>'
                 "(?=(?:.*(stateful))?)"                # match optional 'stateful'
                 "(?=(?:.*expire (\d{8}))?)"            # match optional 'expire <value>'
-                "(?=(?:.*(log))?)", line)              # match optional 'log'
+                "(?=(?:.*(log))?)"                     # match optional 'log'
+                "(?=(?:.*(mirror))?)", line)           # match optional 'mirror'
 
         if m is not None:
             rule = TCPRule()
@@ -61,6 +62,7 @@ class Parser(object):
             rule.stateful = m.group(7)
             rule.expire = m.group(8)
             rule.log = m.group(9)
+            rule.mirror = m.group(10)
             if rule not in self._tcp_rules:
                 self._tcp_rules.append(rule)
 
@@ -85,7 +87,8 @@ class Parser(object):
                   "\s+"                          # match space
                   "(?:dst\s*(\S+))"              # match dst
                   "(?=(?:.*expire (\d{8}))?)"    # match optional 'expire <value>'
-                  "(?=(?:.*(log))?)", line)      # match optional 'log'
+                  "(?=(?:.*(log))?)"             # match optional 'log'
+                  "(?=(?:.*(mirror))?)", line)   # match optional 'mirror'
 
             if m is not None:
                 rule = ICMPRule()
@@ -96,6 +99,7 @@ class Parser(object):
                 rule.dst = m.group(5)
                 rule.expire = m.group(6)
                 rule.log = m.group(7)
+                rule.mirror = m.group(8)
                 if rule not in self._icmp_rules:
                     self._icmp_rules.append(rule)
             else:
