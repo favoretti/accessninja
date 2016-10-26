@@ -67,6 +67,7 @@ class HostGroup(object):
         except Exception, e:
             frameinfo = getframeinfo(currentframe())
             print frameinfo.filename, frameinfo.lineno, e
+            raise e
 
     def render_junos(self):
         config = 'delete policy-options prefix-list {}'.format(self.name)
