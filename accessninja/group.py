@@ -151,7 +151,7 @@ class PortGroup(object):
                     if port.startswith('-'):
                         port = '0-{}'.format(port)
                     if port.endswith('-'):
-                        port = '{}-65535'.format(port)
+                        port = '{}65535'.format(port)
                     self._ports.append(port)
         except Exception, e:
             frameinfo = getframeinfo(currentframe())

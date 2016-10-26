@@ -46,7 +46,10 @@ def main(args):
         for device in devicefiles:
             device_object = Device()
             device_object.parse_file(device)
-            device_object.render_to_file_and_deploy()
+            thread = threading.Thread(target=device_object.render_to_file_and_deploy, args=())
+            thread.daemon = True  # Daemonize thread
+            thread.start()
+            # device_object.render_to_file_and_deploy()
 
 
 if __name__ == '__main__':
