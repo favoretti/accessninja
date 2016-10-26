@@ -9,6 +9,7 @@ Options:
   -h --help     Show this screen.
 """
 import sys
+import threading
 
 from docopt import docopt
 from os import listdir
@@ -47,7 +48,6 @@ def main(args):
             device_object = Device()
             device_object.parse_file(device)
             thread = threading.Thread(target=device_object.render_to_file_and_deploy, args=())
-            thread.daemon = True  # Daemonize thread
             thread.start()
             # device_object.render_to_file_and_deploy()
 

@@ -32,11 +32,11 @@ class JunosDeployer(object):
                 sys.exit(2)
 
         def s(local_conn, line):
-            print("   %s" % line)
+            # print("   %s" % line)
             local_conn.execute(line)
 
         f = NamedTemporaryFile(delete=False)
-        print('Stored temporary config at {}'.format(f.name))
+        print('[{}] Stored temporary config at {}'.format(self._device.name, f.name))
         f.write(self._device.rendered_config)
         f.flush()
 
@@ -52,22 +52,22 @@ class JunosDeployer(object):
                 sys.exit(1)
 
         upload_filename = "/root/config-{}".format(time.strftime("%d-%m-%Y-%H-%M-%S"))
-        print 'Uploading as file: {}'.format(upload_filename)
+        print '[{}] Uploading as file: {}'.format(self._device.name, upload_filename)
         sftp.put(f.name, upload_filename)
         sftp.close()
 
         tr.close()
         f.close()
 
-        print('Config uploaded as {}'.format(upload_filename))
+        print('[{}] Config uploaded as {}'.format(self._device.name, upload_filename))
 
         if self._device.transport == 'ssh':
-            conn = SSH2(verify_fingerprint=False, debug=1, timeout=360)
+            conn = SSH2(verify_fingerprint=False, debug=0, timeout=600)
         else:
             print("ERROR: Unknown transport mechanism: {}".format(self._device.transport))
             sys.exit(2)
 
-        print('Logging in to apply the config')
+        print('[{}] Logging in to apply the config'.format(self._device.name))
         conn.set_driver('junos')
         conn.connect(self._device.name)
         conn.login(account)
@@ -76,11 +76,11 @@ class JunosDeployer(object):
         conn.execute('set cli screen-length 10000')
         conn.execute('edit')
         s(conn, 'load set {}'.format(upload_filename))
-        print('Set loadded, commiting')
+        print('[{}] Set loadded, commiting'.format(self._device.name))
         s(conn, 'commit')
-        print('Commited')
+        print('[{}] Commited'.format(self._device.name))
         s(conn, 'exit')
         s(conn, 'exit')
-        print('Removing file {}'.format(upload_filename))
+        print('[{}] Removing file {}'.format(self._device.name, upload_filename))
         s(conn, 'rm {}'.format(upload_filename))
-        print('Done.')
+        print('[{}] Done.'.format(self._device.name))
