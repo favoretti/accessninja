@@ -94,7 +94,7 @@ The syntax for this is a variation of the AFPL2 language and is as following:
 	src < prefix | $ip | @hostgroup | any > [ port number | range | @portgroup | any ] \
 	dst < prefix | $ip | @hostgroup | any > [ port number | range | @portgroup | any ] \
 	[ stateful ] \
-	[ expire YYYYMMDD ] [ log ] \
+	[ expire YYYYMMDD ] [ log ] [mirror] \
 	[ # comment ]
 
 	< allow | deny > < icmp > < any | type <code|any> > \ 
@@ -141,6 +141,7 @@ One last thing to keep in mind, remarks/comments are not being pushed towards th
 	deny tcp src @bgp-peers port any dst @mp-servers port @webports # another comment
 	allow tcp src 2.2.2.2 port 1 dst 10.0.0.0/8 port 1023-
 	allow tcp src 2.2.2.2 port 1 dst 10.0.0.0/8 port -1023
+	allow any src any dst any mirror
 	allow icmp 128 0 src any dst 192.0.2.0/24 # icmpv6 echo request
 	allow icmp 129 0 src 192.0.2.0/24 dst any # icmpv6 echo reply
 
