@@ -157,6 +157,7 @@ class PortGroup(object):
         except Exception, e:
             frameinfo = getframeinfo(currentframe())
             print frameinfo.filename, frameinfo.lineno, e
+            raise e
 
     def render_ios(self):
         config = 'no object-group ip port {}\n'.format(self.name)
