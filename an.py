@@ -27,7 +27,7 @@ def main(args):
         print ('Rendering all devices')
         devicefiles = [f for f in listdir(config.devices) if isfile(join(config.devices, f)) and 'ignore' not in f]
 
-    if args['<device>'] in groups_list:
+    elif args['<device>'] in groups_list:
         group_device = []
         devicefiles = []
 
