@@ -20,9 +20,10 @@ expanding all the inclusions in separate rules.
 Create a config file in `~/.accessninja/config` with the following contents:
 ```
 [general]
-devices = /Users/vlazarenko/REPOS/ecg-networking/devices
-objects = /Users/vlazarenko/REPOS/ecg-networking/objects
+devices  = /Users/vlazarenko/REPOS/ecg-networking/devices
+objects  = /Users/vlazarenko/REPOS/ecg-networking/objects
 policies = /Users/vlazarenko/REPOS/ecg-networking/policy
+groups   = /Users/vlazarenko/REPOS/ecg-networking/groups
 ```
 The paths should point to your check-out of ACLHound configuration files.
 
@@ -31,8 +32,8 @@ The paths should point to your check-out of ACLHound configuration files.
 ```
 $ ./an.py
 Usage:
-  an.py compile <device>|all
-  an.py deploy <device>|all
+  an.py compile <device>|all|groupname
+  an.py deploy <device>|all|groupname
 ```
 
 * Compile will just render the config to screen and check for errors
@@ -56,6 +57,7 @@ Ninja needs 3 directories, containing the following information:
 *   devices
 *   policy
 *   objects
+*   groups
 
 ### Directory : devices
 
@@ -80,6 +82,9 @@ include nw-management
 include test-policy
 ```
 
+### Directory : groups
+
+In this directory you can add files which represents the group names within that file you can add the desired device per line.
 
 ### Directory : policy
 

@@ -2,8 +2,8 @@
 """Access Ninja.
 
 Usage:
-  an.py compile <device>|all
-  an.py deploy <device>|all
+  an.py compile <device>|all|groupname
+  an.py deploy <device>|all|groupname
 
 Options:
   -h --help     Show this screen.
@@ -21,9 +21,22 @@ from accessninja.device import Device
 
 def main(args):
     config = Config()
+    groups_list = [f for f in listdir(config.groups) if isfile(join(config.groups, f)) and args['<device>'] in f and 'ignore' not in f]
 
     if args['<device>'] == 'all':
+        print ('Rendering all devices')
         devicefiles = [f for f in listdir(config.devices) if isfile(join(config.devices, f)) and 'ignore' not in f]
+
+    if args['<device>'] in groups_list:
+        group_device = []
+        devicefiles = []
+
+        print ('Rendering devices in group: {}'.format(args['<device>']))
+        with  open(config.groups + '/' + groups_list[0]) as group_device:
+            for device in group_device:
+               devicefiles.append(device.rstrip('\n'))
+        print ('group devices: {}\n'.format(devicefiles))
+
     else:
         devicefiles = [f for f in listdir(config.devices) if isfile(join(config.devices, f)) and
                        'ignore' not in f and args['<device>'] in f]

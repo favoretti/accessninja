@@ -14,13 +14,15 @@ class Config(object):
                             'objects and policies containing paths')
 
         if not config.has_option('general', 'devices') or not config.has_option('general', 'objects') \
-                or not config.has_option('general', 'policies'):
+                or not config.has_option('general', 'policies') \
+		or not config.has_option('general', 'groups'):
             raise Exception('Config must contain section general with values for devices, '
-                            'objects and policies containing paths')
+                            'objects, policies and groups containing paths')
 
-        self.devices = config.get('general', 'devices')
-        self.objects = config.get('general', 'objects')
+        self.devices  = config.get('general', 'devices')
+        self.objects  = config.get('general', 'objects')
         self.policies = config.get('general', 'policies')
+        self.groups   = config.get('general', 'groups')
 
 if __name__ == '__main__':
     c = Config()
