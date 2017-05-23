@@ -70,6 +70,9 @@ class HostGroup(object):
             raise e
 
     def render_junos(self):
+        if not len(self._prefixes):
+            raise Exception("Object can not be empty: {}".format(self.name))
+
         config = 'delete policy-options prefix-list {}'.format(self.name)
         for prefix in self._prefixes:
             if prefix.startswith('@'):
