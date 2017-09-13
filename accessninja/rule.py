@@ -167,6 +167,9 @@ class TCPRule(object):
             fport = 'range 0 {}'.format(port[1:])
         elif port.endswith('-'):
             fport = 'range {} 65535'.format(port[0:-1])
+        elif '-' in port:
+            port = port.replace('-', ' ')
+            fport = 'range {}'.format(port)
         else:
             fport = 'eq {}'.format(port)
 
