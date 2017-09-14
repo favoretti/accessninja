@@ -10,6 +10,7 @@ class IOSRenderer(object):
 
     def render_ios_rules(self):
         for ruleset in self._device.rules:
+            self.render_ios_icmp_rules(ruleset.name, ruleset.icmp_rules)
             self.render_ios_tcp_rules(ruleset.name, ruleset.tcp_rules)
 
     def render_config(self):

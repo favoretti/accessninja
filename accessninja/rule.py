@@ -359,7 +359,7 @@ class ICMPRule(object):
 
     @property
     def src(self):
-        return self._src if type(self._src) == str else self._src.with_netmask
+        return self._src if type(self._src) == str else self._src.cidr
 
     @src.setter
     def src(self, value):
@@ -373,7 +373,7 @@ class ICMPRule(object):
 
     @property
     def src_is_group(self):
-        return self.src.startswith('@')
+        return self.src and type(self.src) is str and self.src.startswith('@')
 
     @property
     def src_is_any(self):
@@ -381,7 +381,7 @@ class ICMPRule(object):
 
     @property
     def dst(self):
-        return self._dst if type(self._dst) == str else self._dst.with_netmask
+        return self._dst if type(self._dst) == str else self._dst.cidr
 
     @property
     def dst_is_group(self):
@@ -418,7 +418,38 @@ class ICMPRule(object):
         self._log = value
 
     def render_ios(self):
-        return ''  # FIXME: render proper ICMP rules for IOS
+        line = ''
+        if self.policy == 'allow':
+            line += 'permit '
+
+        if self.policy == 'deny':
+            line += 'deny '
+
+        line += '{} '.format(self.protocol)
+
+        line += '{} '.format(self._icmptype)
+        if self.src_is_any:
+            line += '{} '.format(self.src)
+        elif self.src_is_group:
+            line += 'addrgroup {} '.format(self.src[1:])
+        elif type(self.src) is not str and self.src.prefixlen in [32, 128]:
+            line += 'host {} '.format(self.src.ip)
+        elif type(self.src) is not str and self.src.version == 4:
+            line += '{} {} '.format(self.src.network, self.src.hostmask)
+
+        if self.dst_is_any:
+            line += '{} '.format(self.dst)
+        elif self.dst_is_group:
+            line += 'addrgroup {} '.format(self.dst[1:])
+        elif type(self.dst) is not str and self.dst.prefixlen in [32, 128]:
+            line += 'host {} '.format(self.dst.ip)
+        elif type(self.dst) is not str and self.dst.version == 4:
+            line += '{} {} '.format(self.dst.network, self.dst.hostmask)
+
+        if self.log:
+            line += 'log'
+
+        return line
 
     def render_junos(self):
         config_blob = list()
