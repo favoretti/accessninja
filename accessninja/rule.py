@@ -426,8 +426,6 @@ class ICMPRule(object):
             line += 'deny '
 
         line += '{} '.format(self.protocol)
-
-        line += '{} '.format(self._icmptype)
         if self.src_is_any:
             line += '{} '.format(self.src)
         elif self.src_is_group:
