@@ -8,6 +8,7 @@ from renderers.junos import JunosRenderer
 from renderers.ios import IOSRenderer
 from deployers.junos import JunosDeployer
 from deployers.ios import IOSDeployer
+from deployers.iosscp import SCPDeployer
 
 
 class Device(object):
@@ -149,7 +150,8 @@ class Device(object):
             deployer.render_to_file_and_deploy()
 
         if self._vendor == 'ios':
-            deployer = IOSDeployer(self)
+            #deployer = IOSDeployer(self)
+            deployer = SCPDeployer(self)
             deployer.render_to_file_and_deploy()
 
     def print_rendered_config(self):
